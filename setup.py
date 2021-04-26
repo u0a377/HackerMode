@@ -198,7 +198,7 @@ class Installer:
                 print('# installed failed!')
         else:
             print(f'{RED}# Error: the tool path not found!')
-            print(f'# try to run tool using\n# {GREEN}"python3 HakcerMode install"{NORMAL}')
+            print(f'# try to run tool using\n# {GREEN}"python3 HackerMode install"{NORMAL}')
             print('# installed failed!')
 
     def check(self):
