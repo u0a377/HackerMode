@@ -134,3 +134,7 @@ dmypy.json
 base/tools/aioc/scr/*
 base/tools/vss/*
 
+base/tools/social-media/.dart_tool/package_config.json
+base/tools/social-media/.packages
+base/tools/social-media/dart_main.exe
+base/tools/social-media/pubspec.lock
