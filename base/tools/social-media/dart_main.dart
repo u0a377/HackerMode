@@ -18,7 +18,7 @@ class SocialMedia{
 
       this.getRequest(Uri.parse(url)).then((value) {
         _counter++;
-        stdout.write("\r# Loading [$_counter/${contentsAsMap.keys.length}]");
+        stdout.write("# Loading [$_counter/${contentsAsMap.keys.length}] \r");
         if (value) {
           this.urls200.add(hostName);
         }
