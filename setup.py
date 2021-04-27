@@ -7,7 +7,7 @@ from base.config import Config
 PACKAGES = {
     'apt': {
         'termux':['apt --fix-broken install'],
-        'linux':['apt --fix-broken install'],
+        'linux':['sudo apt --fix-broken install'],
     },
     # -----------------------------------
     'pip3': {
@@ -65,6 +65,7 @@ PYHTON_MODULES = {
     'pygments': 'pygments',
     'python-nmap': 'nmap',
     'requests': 'requests',
+    'flask': 'flask',
     'getmac': 'getmac',
     'pibyone': 'pibyone',
 }
@@ -81,7 +82,7 @@ BASE_PYHTON_MODULES = (
 
 BASE_PACKAGES = (
     'git',
-    'pip',
+    'pip3',
 )
 
 RED = '\033[1;31m'
