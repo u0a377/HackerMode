@@ -63,7 +63,7 @@ class BaseCmd(BaseShell):
 		except ValueError:
 			print(f'Not Lib {arg}')
 	def complete_install(self,arg,*args):
-		all=list(options.keys())
+		all=[str(x) for x in options.keys()]
 		if not arg:return all
 		else:return [x for x in all if x.startswith(arg)]
 	def GetComand(self,arg):
