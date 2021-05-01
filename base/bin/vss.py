@@ -1,1 +1,1 @@
-exit("Permission Error: github.com bloked the tool")
+exit("# The tool is blocked due to illegal use!")
