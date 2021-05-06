@@ -3,7 +3,6 @@ import os
 import cmd
 import json
 import time
-import base64
 import pathlib
 import threading
 

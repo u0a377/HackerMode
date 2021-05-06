@@ -132,7 +132,6 @@ dmypy.json
 # logs files and settings
 .idea/
 base/tools/aioc/scr/*
-base/tools/vss/*
 
 base/tools/social-media/.dart_tool/package_config.json
 base/tools/social-media/.packages
