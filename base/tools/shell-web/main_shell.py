@@ -1,6 +1,8 @@
 import json
+import os
 import re
 
+import requests
 from N4Tools.Design import ThreadAnimation
 from bs4 import BeautifulSoup
 from pygments import highlight
@@ -11,10 +13,11 @@ from html_shell import HtmlShell
 from source import Source
 from shell import BaseShell
 
+
 class MainShell(BaseShell):  # Main Shell
     ToolName = "Shell-Web"
 
-    def __init__(self,value, html, url, *args, **kwargs):
+    def __init__(self, value, html, url, *args, **kwargs):
         super(MainShell, self).__init__(*args, *kwargs)
         self.value = value
         self.html = html
@@ -42,25 +45,33 @@ class MainShell(BaseShell):  # Main Shell
             for a in sorted(list(self.Names.keys()))
         }
 
-    def do_html(self, arg):  # html Shell
+    def do_html(self, arg):
         HtmlShell(self.html).cmdloop()
 
     def do_Flask(self, arg):
-        if self.url:
-            all = BeautifulSoup(arg, "html.parser")
-            try:
-                if (get := all.find("flask").get('filename')):
-                    obj = Source(self.url, get, self.html.prettify())
-                    obj.Start()
-                else:
-                    print("Flask <flask filename='Name' />")
-            except NameError:
-                print("Flask <flask filename='Name' />")
+        if not arg.startswith('<') and not arg.endswith('/>'):
+            os.system(f'python3 -B {arg}')
+            return
+        soup = BeautifulSoup(arg, "html.parser")
+        soup = soup.find("flask")
+        if all(data := [soup.get('appname'), soup.get('pagename')]):
+            if url := soup.get('url'):
+                try:
+                    content = requests.get(url).content
+                except Exception as e:
+                    print(f"# {e}")
+                    return
+                Source(*data, url, BeautifulSoup(content, "html.parser").prettify()).start()
+            elif url := self.url:
+                Source(*data, url, self.html.prettify()).start()
+            else:
+                print(f"USAGE:\n  Flask <flask appname='webname' pagename='index' url='https://example.com'/>")
         else:
-            print("Not URL...!")
+            print(f"USAGE:\n  Flask <flask appname='webname' pagename='index'/>")
 
     def complete_Flask(self, *args):
-        return ["<flask filename=' ' />"]
+        url = "" if self.url else "url=''"
+        return [f"<flask appname='' pagename='index' {url}/>"]
 
     @ThreadAnimation()
     def Lexer_Json(self, Thread, Code):
@@ -70,9 +81,9 @@ class MainShell(BaseShell):  # Main Shell
 
     def do_Info(self, arg):
         if type(self.value) == str:
-            print("Not info...!")
+            print("# you are using file!")
         elif len((f := [x for x in re.findall("[\W]*", arg.strip()) if x])) > 0:
-            print(f"Not {f}...!")
+            print("# you are using file!")
         else:
             try:
                 temp = eval(f'self.value.{arg}')

@@ -133,6 +133,7 @@ class BaseShell(cmd.Cmd):
     def onecmd(self, line: str):
         cmd, arg, line = self.parseline(line)
         self.is_error = False
+        self.Path = self.viewdir(pathlib.PurePath())
 
         if self._update_shell() == False:
             print ("Error[#1121]: hakcermode shell stoped!")

@@ -5,87 +5,91 @@ import requests
 from N4Tools.Design import ThreadAnimation
 from bs4 import BeautifulSoup
 
-with open(os.path.abspath(__file__).rsplit("/",1)[0]+"/flask_app.py") as file:
-    app = file.read()
 
 class Source:
-    def __init__(self, url, Name, html):
-        # url -> domin
+    def __init__(self, appname, pagename, url, html_page_text):
+        self.appname = appname
+        self.pagename = pagename
         self.url = url
+        self.html_soup = BeautifulSoup(html_page_text, "html.parser")
         self.domin = '//'.join([x for x in url.split('/') if x][:2])
-        self.html = BeautifulSoup(html, "html.parser")
-        self.urls = []
-        self.Name = Name
-        # paths -> app
-        self.Paths = [
-            f"{Name}",
-            f"{Name}/__main__.py",
-            f"{Name}/static",
-            f"{Name}/templates",
+        self.paths = [
+            f"{appname}",
+            f"{appname}/static",
+            f"{appname}/templates",
         ]
-
-    def write(self, Name, text):
-        with open(Name, "wb") as f:
-            f.write(text)
-
-    def Text(self, text):
-        for nc in range(8):
-            text = text.replace(f"${nc}", f"\033[1;3{nc}m")
-        return text.replace("$$", "\033[0m")
+        self.main_app = os.path.join(appname, '__main__.py')
+        if os.path.exists(self.main_app):
+            with open(os.path.join(appname, "__main__.py"), 'r') as file:
+                self.app_text_file = file.read()
+        else:
+            with open(os.path.abspath(__file__).rsplit("/", 1)[0] + "/flask_app.py", 'r') as file:
+                self.app_text_file = file.read()
 
     @ThreadAnimation()
-    def Install(Thread, self, url):
-        out = None
+    def install_static_files(Thread, self, url):
+        filename = os.path.join(self.appname, f'static/{url.split("/")[-1]}')
+        if os.path.exists(filename):
+            return '{{ url_for("static", filename="%s") }}' % url.split("/")[-1]
         try:
-            out = requests.get(url)
+            content = requests.get(url).content
+            with open(filename, 'wb') as file:
+                file.write(content)
+            Thread.set_end(
+                f"[\033[0;33mstate\033[0m \033[0;32mtrue\033[0m] {filename}"
+            )
+            return '{{ url_for("static", filename="%s") }}' % url.split("/")[-1]
         except Exception as e:
-            print(f"\033[1;31mERROR    \033[1;32m: \033[0m{e}")
-            out = None
-        Thread.kill()
-        return out
+            Thread.set_end(
+                f"[\033[0;33mstate\033[0m \033[0;31mfalse\033[0m] {filename}"
+            )
+            return None
 
-    def Create(self, tag, attr, expr):
-        Name = self.Name
-        isurl = lambda u: True if re.findall('((http|ftp)s?://.*?)', get) else False
-        for src in self.html.find_all(tag):
-            if (get := src.get(attr)) and (get := get.strip()) and not get.endswith('/'):
-                path = f"{{{{ url_for('static', filename='{get.split('/')[-1].replace(' ', '_')}') }}}}"
-                if isurl(get):
-                    self.urls.append(get)
-                    src[attr] = path
-                elif ((st := get.startswith('/')) or expr):
-                    self.urls.append(self.domin + ("/" if not st else '') + get)
-                    src[attr] = path
+    def download_app_files(self):
+        pattren_http = r'https?:.*\.(?:jpg|png|jpeg|gif|svg|css|js|ico)'
+        pattren_domain = r'^\/.+\.(?:jpg|png|jpeg|gif|svg|css|js|ico)'
+        for tag in self.html_soup.open_tag_counter.keys():
+            for soup in self.html_soup.find_all(tag):
+                for attr in ['src', 'href', 'content']:
+                    if text := soup.get(attr):
+                        if url := re.search(pattren_http, text):
+                            if file := self.install_static_files(url[0]):
+                                soup[attr] = file
+                        elif url := re.search(pattren_domain, text):
+                            url.start()
+                            if file := self.install_static_files(self.domin + url[0]):
+                                soup[attr] = file
 
-    def Setup(self):
-        Name = self.Name
-        # print -> Setup: NameFile
-        for s in self.Paths:
-            if not os.path.exists(s) and not s.endswith('index.py'):
-                if s.endswith('__main__.py'):
-                    # write __main__.py -> Flask server
-                    self.write(s, app.encode())
-                else:
-                    os.mkdir(s)
-                print(self.Text(f"$2Setup    $1: $$") + s)
-            else:
-                print(self.Text(f"$3Exists   $1: $$") + s)
-        index = os.path.join(Name, "templates", "index.html")
-        print(self.Text(f"$2Setup    $1: $$") + index)
+    def create_app_folders(self):
+        for folder in self.paths:
+            try:
+                os.mkdir(folder)
+            except FileExistsError:
+                pass
 
-    def Start(self):
-        # Setup dir and file -> app
-        self.Setup()
-        self.Create("link", "href", True)
-        self.Create("script", "src", True)
-        self.Create("img", "src", True)
-        # self.Create("meta", "content", False)
-        self.write(os.path.join(self.Name, "templates", "index.html"), self.html.prettify().encode())
+    def page(self, page_name):
+        return f'''\n\n@app.route('{page_name}')\ndef {page_name[1:]}():\n    # Code...\n    return render_template('{page_name[1:]}.html')'''
 
-        for url in set(self.urls):
-            path = os.path.join(self.Name, "static", url.split('/')[-1])
-            print(self.Text(f"$2Download$1 :$$ {path}"))
-            if (install := self.Install(url)):
-                self.write(path, install.content)
-            else:
-                print(self.Text(f"$1ERROR    :$$ {url}"))
+    def start(self):
+        self.create_app_folders()
+        self.download_app_files()
+        pattern = r'''(\@\w+\.route\(["'](.+)["']\)\s+def \w+\(.*\):\s(?:[ \t]+.+\n){1,}\s+return render_template\(['"](.+)['"]\))'''
+        page_functions = re.findall(pattern, self.app_text_file)
+        pages = []
+        for function in page_functions:
+            function_body, page_route, page_file = function
+            pages.append(page_route)
+        if (page_name := '/' + self.pagename.replace('index', '')) not in pages:
+            new_page = function_body + self.page(page_name)
+            self.app_text_file = self.app_text_file.replace(
+                function_body, new_page
+            )
+            pages.append(page_name)
+
+        with open(os.path.join(self.appname, "templates", f"{self.pagename}.html"), "w") as file:
+            file.write(self.html_soup.prettify())
+        with open(self.main_app, 'w') as file:
+            file.write(self.app_text_file)
+
+        print(f"\033[0;33mPAGES:", *pages, sep='\n  \033[0m')
+        print(f"\n# DONE ✅")
