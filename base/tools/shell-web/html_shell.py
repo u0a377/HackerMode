@@ -17,10 +17,11 @@ class HtmlShell(BaseShell):
 
     def completenames(self, text, *args):
         base_command = ["back", "clear", "exit"] if text else []
-        return [
+        out = [
                    tag for tag in self.html.open_tag_counter.keys()
                    if tag.startswith(text)
                ] + [_ for _ in base_command if _.startswith(text)]
+        return [f"<{out[0]}/>"] if len(out) == 1 else out
 
     def completedefault(self, text, line, *args):
         return []
