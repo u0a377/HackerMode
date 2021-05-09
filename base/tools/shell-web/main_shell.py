@@ -50,7 +50,10 @@ class MainShell(BaseShell):  # Main Shell
 
     def do_Flask(self, arg):
         if not arg.startswith('<') and not arg.endswith('/>'):
-            os.system(f'python3 -B {arg}')
+            if os.path.exists(arg.strip()):
+                os.system(f'python3 -B {arg}')
+            else:
+                 print(f"# not filename: '{arg}'")
             return
         soup = BeautifulSoup(arg, "html.parser")
         soup = soup.find("flask")
